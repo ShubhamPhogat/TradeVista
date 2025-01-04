@@ -1,7 +1,7 @@
 // code to run express server
 
-const express = require("express");
-const getSubscriptions = require("./publisher");
+import express from "express";
+import getSubscriptions from "./publisher";
 const app = express();
 const port = 5001;
 
