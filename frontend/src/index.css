@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face{
+  font-family: 'Nueue';
+  src: url('/fonts/NeueMontreal-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face{
+  font-family: 'Grotesk';
+  src: url('/fonts/FoundersGrotesk-Semibold.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face{
+  font-family: 'icomoon';
+  src:url('/fonts/icomoon.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
