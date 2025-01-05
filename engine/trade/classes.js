@@ -1,22 +1,32 @@
 export class order {
   constructor(market, side, quantity, user_id, order_id, filled, price) {
+    if (price) price = parseFloat(price);
+    if (quantity) quantity = parseFloat(quantity);
+    if (isNaN(price) || isNaN(quantity)) {
+      throw new Error("Invalid price or quantity");
+    }
+    if (filled) filled = parseFloat(filled);
+
     this.market = market || "";
     this.side = side || "";
-    this.quantity = quantity || "";
+    this.quantity = quantity || 0.0;
     this.user_id = user_id || "";
     this.order_id = order_id || "";
-    this.filled = filled || "0";
-    this.price = price || "";
+    this.filled = filled || 0.0;
+    this.price = price || 0.0;
     this.cancelled = false;
   }
 }
 
 export class Fill {
-  constructor(order_id, price, quantity, dealer_id) {
+  constructor(order_id, price, quantity, dealer_id, side) {
+    if (price) price = parseFloat(price);
+    if (quantity) quantity = parseFloat(quantity);
     this.order_id = order_id || "";
-    this.price = price || "";
-    this.quantity = quantity || "";
+    this.price = price || 0.0;
+    this.quantity = quantity || 0.0;
     this.dealer_id = dealer_id || "";
+    this.side = side || "";
   }
 }
 

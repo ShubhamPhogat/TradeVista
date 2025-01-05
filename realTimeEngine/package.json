@@ -1,9 +1,8 @@
 {
-  "name": "backend-2",
+  "name": "realtimeengine",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,7 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.7",
-    "nodemon": "^3.1.9",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "uuid": "^11.0.4",
+    "ws": "^8.18.0"
   }
 }

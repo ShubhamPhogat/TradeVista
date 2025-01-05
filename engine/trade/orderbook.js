@@ -25,26 +25,30 @@ export class orderBook {
         return {
           status: "failed",
           message: "not enough lots available",
-          ...order,
+          executedOrder: order,
         };
       }
 
       let { executedQuantity, fills, status } = this.matchBid(order);
+      let { depthAsk, depthBid } = this.getDepth();
+      order.filled += executedQuantity;
       if (executedQuantity === order.quantity) {
         return {
-          ...order,
-          filledQuantity: executedQuantity,
-          leftQuantity: 0,
+          executedOrder: order,
           status: "success",
+          depthAsk: depthAsk,
+          depthBid: depthBid,
+          fills,
         };
       } else {
-        order.quantity -= executedQuantity;
         this.asks.push(order);
       }
       return {
-        executedQuantity: executedQuantity,
         fills: fills,
         status: "success",
+        executedOrder: order,
+        depthAsk: depthAsk,
+        depthBid: depthBid,
       };
     }
     if (order.type === "sell") {
@@ -52,26 +56,30 @@ export class orderBook {
         return {
           status: "failed",
           message: "not enough lots available",
-          ...order,
+          executedOrder: order,
         };
       }
 
       let { executedQuantity, fills, status } = this.matchAsk(order);
-
+      let { depthAsk, depthBid } = this.getDepth();
+      order.filled = executedQuantity;
       if (executedQuantity === order.quantity) {
         return {
-          ...order,
-          filledQuantity: executedQuantity,
-          leftQuantity: 0,
+          executedOrder: order,
           status: "success",
+          depthAsk: depthAsk,
+          depthBid: depthBid,
+          fills,
         };
       }
-      order.quantity -= executedQuantity;
+
       this.bids.push(order);
       return {
-        executedQuantity: executedQuantity,
+        executedOrder: order,
         fills: fills,
         status: "success",
+        depthAsk: depthAsk,
+        depthBid: depthBid,
       };
     }
   }
@@ -101,13 +109,7 @@ export class orderBook {
         this.bids.push(currentBid);
         break;
       } else {
-        let filledBid = new Fill(
-          currentBid.id,
-          currentBid.price,
-          currentBid.quantity,
-          order.id
-        );
-        fills.push(filledBid);
+        fills.push(currentBid);
       }
     }
 
@@ -139,15 +141,42 @@ export class orderBook {
         this.asks.push(currentAsk);
         break;
       } else {
-        let filledAsk = new Fill(
-          currentAsk.id,
-          currentAsk.price,
-          currentAsk.quantity,
-          order.id
-        );
-        fills.push(filledAsk);
+        fills.push(currentAsk);
       }
     }
     return { executedQuantity, fills, status: "success" };
+  }
+  getDepth() {
+    const bidsMap = new Map();
+    const asksMap = new Map();
+
+    // Aggregate bids
+    for (let i = 0; i < this.bids.length; i++) {
+      const order = this.bids[i];
+      const currentQuantity = bidsMap.get(order.price) || 0;
+      bidsMap.set(order.price, currentQuantity + order.quantity);
+    }
+
+    // Aggregate asks
+    for (let i = 0; i < this.asks.length; i++) {
+      const order = this.asks[i];
+      const currentQuantity = asksMap.get(order.price) || 0;
+      asksMap.set(order.price, currentQuantity + order.quantity);
+    }
+
+    // Convert Map to Array
+    const bids = Array.from(bidsMap.entries()).map(([price, quantity]) => [
+      price,
+      quantity,
+    ]);
+    const asks = Array.from(asksMap.entries()).map(([price, quantity]) => [
+      price,
+      quantity,
+    ]);
+
+    return {
+      bids,
+      asks,
+    };
   }
 }

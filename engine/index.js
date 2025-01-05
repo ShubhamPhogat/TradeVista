@@ -1,16 +1,20 @@
-// code to run express server
+import { createClient } from "redis";
+import { Engine } from "./trade/engine";
 
-import express from "express";
-import getSubscriptions from "./publisher";
-const app = express();
-const port = 5001;
+async function main() {
+  const redisClient = createClient();
+  await redisClient.connect();
+  console.log("connected to redis");
 
-app.get("/", (req, res) => {
-  res.send("Hello, World!");
-});
+  while (true) {
+    const req = await redisClient.rPop(messages);
+    if (!req) {
+    } else {
+      const response = JSON.parse(req);
+      const engine = new Engine(response);
+      engine.process(response);
+    }
+  }
+}
 
-getSubscriptions();
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+main();

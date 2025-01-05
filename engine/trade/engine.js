@@ -1,4 +1,4 @@
-import { redisManager } from "../redisManager";
+import { redisManager, redisManagerToBackendDb } from "../redisManager";
 import { order } from "./classes";
 import { orderBook } from "./orderbook";
 
@@ -25,7 +25,7 @@ export class Engine {
     }
   }
 
-  process(message, id) {
+  process(message) {
     switch (message.type) {
       case "CREATE_ORDER":
         try {
@@ -35,8 +35,8 @@ export class Engine {
             type: "ORDER_PLACED",
             payload: {
               executedQuantity,
-              fills,
               status: "success",
+              order: message,
             },
           });
         } catch (e) {
@@ -136,7 +136,48 @@ export class Engine {
       price
     );
 
-    const { executedQuantity, fills, status } =
+    const { depthAsk, depthBid, executedOrder, fills, status } =
       this.orderBook.addOrder(newOrder);
+
+    this.Dborders(fills, executedOrder);
+    this.ApiOrders(executedOrder);
+    this.publishDepth(depthAsk, depthBid, executedOrder.market);
+  }
+
+  Dborders(fills, completedOrder) {
+    //code to save the order in the database
+    //executedQuantity, fills, status, newOrder
+    redisManagerToBackendDb.getInstance().sendtoBackendDb(completedOrder);
+    fills.forEach((o) => {
+      redisManagerToBackendDb.getInstance().sendtoBackendDb(o);
+    });
+  }
+  ApiOrders(newOrder) {
+    //code to send the order to the API
+    //newOrder
+    redisManager.getInstance().sendToB1(newOrder.orderId, {
+      type: "ORDER_PLACED",
+      payload: {
+        executedQuantity: newOrder.executedQuantity,
+        order: newOrder,
+        status: "success",
+      },
+    });
+  }
+
+  publishDepth(depthAsk, depthBid, market) {
+    emit(depthAsk, depthBid, market);
   }
 }
+
+const emit = async (depthAsk, depthBid, market) => {
+  try {
+    const client = createClient({
+      url: process.env.REDIS_MANAGER_REALTIME_ENGINE,
+    });
+    await client.connect();
+    client.publish(market, JSON.stringify({ asks: depthAsk, bids: depthBid }));
+  } catch (error) {
+    console.error(error);
+  }
+};
