@@ -1,4 +1,4 @@
-const { pool } = require("./db"); // Assuming your PostgreSQL pool is exported from 'db.js'
+import { pool } from "pg"; // Assuming your PostgreSQL pool is exported from 'db.js'
 
 async function processOrder(order) {
   const client = await pool.connect();

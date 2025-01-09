@@ -1,4 +1,4 @@
-import { Fill, Heap, maxComparator, minComparator } from "./classes";
+import { Fill, Heap, maxComparator, minComparator } from "./classes.js";
 
 export class orderBook {
   constructor(
@@ -11,8 +11,8 @@ export class orderBook {
     lastOrder_id
   ) {
     this.market = market || "";
-    this.bids = bids || new Heap(minComparator);
-    this.asks = asks || new Heap(maxComparator);
+    this.bids = new Heap(minComparator);
+    this.asks = new Heap(maxComparator);
     this.baseAssets = baseAssets || "";
     this.quoteAssets = quoteAssets || "";
     this.current_price = current_price || "";
@@ -20,7 +20,8 @@ export class orderBook {
   }
 
   addOrder(order) {
-    if (order.type === "buy") {
+    console.log("order added", order);
+    if (order.side === "buy") {
       if (order.ioc === true && this.bids.totalVolume < order.quantity) {
         return {
           status: "failed",
@@ -51,7 +52,7 @@ export class orderBook {
         depthBid: depthBid,
       };
     }
-    if (order.type === "sell") {
+    if (order.side === "sell") {
       if (order.ioc === true && this.asks.totalVolume < order.quantity) {
         return {
           status: "failed",
@@ -85,12 +86,13 @@ export class orderBook {
   }
 
   matchBid(order) {
+    console.log("matchBid");
     if (this.bids.length === 0 || this.bids[0] > order.price) {
       return { executedQuantity: 0, fills: [], status: "failure" };
     }
     let executedQuantity = 0;
     let fills = [];
-    while (true) {
+    while (true && this.bids.length > 0) {
       if (this.bids[0].cancelled) {
         this.bids.pop();
         continue;
@@ -122,7 +124,7 @@ export class orderBook {
     }
     let executedQuantity = 0;
     let fills = [];
-    while (true) {
+    while (true && this.asks.length > 0) {
       if (this.asks[0].cancelled) {
         this.asks.pop();
         continue;

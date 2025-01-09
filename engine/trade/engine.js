@@ -1,13 +1,13 @@
-import { redisManager, redisManagerToBackendDb } from "../redisManager";
-import { order } from "./classes";
-import { orderBook } from "./orderbook";
+import { redisManager, redisManagerToBackendDb } from "../redisManager.js";
+import { order } from "./classes.js";
+import { orderBook } from "./orderbook.js";
 
 export class Engine {
-  static marketEngines = new map();
+  static marketEngines = new Map();
   constructor(message) {
     const { market, baseAsset, quoteAsset } = message;
-    if (this.marketEngines.has(market)) {
-      return this.marketEngines.get(market);
+    if (Engine.marketEngines.has(market)) {
+      return Engine.marketEngines.get(market);
     } else {
       this.market = market;
       this.baseAsset = baseAsset;
@@ -21,17 +21,19 @@ export class Engine {
         "0",
         "1"
       );
-      this.marketEngines.set(market, this);
+      Engine.marketEngines.set(market, this);
     }
   }
 
-  process(message) {
+  process(order_id, message) {
     switch (message.type) {
       case "CREATE_ORDER":
         try {
-          const { executedQuantity, fills, orderId } =
-            this.createOrder(message);
-          redisManager.getInstance().sendToB1(orderId, {
+          const { executedQuantity, fills } = this.createOrder(
+            message,
+            order_id
+          );
+          redisManager.getInstance().sendToB1(order_id, {
             type: "ORDER_PLACED",
             payload: {
               executedQuantity,
@@ -41,11 +43,9 @@ export class Engine {
           });
         } catch (e) {
           console.log("error in placing the order: " + e);
-          redisManager.getInstance().sendToB1(message.orderId, {
+          redisManager.getInstance().sendToB1(message.order_id, {
             type: "ORDER_CANCELLED",
             payload: {
-              executedQuantity,
-              fills,
               status: "failed",
             },
           });
@@ -54,13 +54,13 @@ export class Engine {
         break;
       case "CANCEL_ORDER":
         try {
-          const cancelOrderId = message.orderId;
+          const cancelorder_id = message.order_id;
           const side = message.side;
           if (side === "buy") {
             let cancelledOrder = null;
             let cancelledOrderIndex = null;
             for (let i = 0; i < this.orderBook.asks.length; i++) {
-              if (this.orderBook.asks[i].orderId === cancelOrderId) {
+              if (this.orderBook.asks[i].order_id === cancelorder_id) {
                 cancelledOrder = this.orderBook.asks[i];
                 cancelledOrderIndex = i;
                 break;
@@ -71,7 +71,7 @@ export class Engine {
               throw Error("order not found");
             } else {
               this.orderBook.asks[cancelledOrderIndex].cancelled = true;
-              redisManager.getInstance().sendToB1(cancelledOrder.orderId, {
+              redisManager.getInstance().sendToB1(cancelledOrder.order_id, {
                 type: "ORDER_CANCELLED",
                 payload: {
                   executedQuantity: cancelledOrder.quantity,
@@ -85,7 +85,7 @@ export class Engine {
             let cancelledOrder = null;
             let cancelledOrderIndex = null;
             for (let i = 0; i < this.orderBook.bids.length; i++) {
-              if (this.orderBook.bids[i].orderId === cancelOrderId) {
+              if (this.orderBook.bids[i].order_id === cancelorder_id) {
                 cancelledOrder = this.orderBook.bids[i];
                 cancelledOrderIndex = i;
                 break;
@@ -96,7 +96,7 @@ export class Engine {
               throw Error("order not found");
             } else {
               this.orderBook.bids[cancelledOrderIndex].cancelled = true;
-              redisManager.getInstance().sendToB1(cancelledOrder.orderId, {
+              redisManager.getInstance().sendToB1(cancelledOrder.order_id, {
                 type: "ORDER_CANCELLED",
                 payload: {
                   executedQuantity: cancelledOrder.quantity,
@@ -108,7 +108,7 @@ export class Engine {
           }
         } catch (e) {
           console.log("error in placing the order: " + e);
-          redisManager.getInstance().sendToB1(message.orderId, {
+          redisManager.getInstance().sendToB1(message.order_id, {
             type: "ORDER_CANCELLED",
             payload: {
               executedQuantity,
@@ -123,39 +123,54 @@ export class Engine {
     }
   }
 
-  createOrder(message) {
-    const { market, side, quantity, user_id, price, orderId } = message.data;
+  createOrder(message, order_id) {
+    const { market, side, quantity, user_id, price, ioc } = message.data;
 
     const newOrder = new order(
       market,
       side,
       quantity,
       user_id,
-      orderId,
+      order_id,
       "0",
-      price
+      price,
+      ioc
     );
-
     const { depthAsk, depthBid, executedOrder, fills, status } =
       this.orderBook.addOrder(newOrder);
 
     this.Dborders(fills, executedOrder);
-    this.ApiOrders(executedOrder);
+    this.ApiOrders(executedOrder, fills);
+
     this.publishDepth(depthAsk, depthBid, executedOrder.market);
   }
 
-  Dborders(fills, completedOrder) {
+  async Dborders(fills, completedOrder) {
     //code to save the order in the database
     //executedQuantity, fills, status, newOrder
-    redisManagerToBackendDb.getInstance().sendtoBackendDb(completedOrder);
+    const redisManagerToBackendDbInstance =
+      await redisManagerToBackendDb.getInstance();
+    redisManagerToBackendDbInstance.sendToBackendDb(completedOrder);
     fills.forEach((o) => {
-      redisManagerToBackendDb.getInstance().sendtoBackendDb(o);
+      redisManagerToBackendDbInstance.sendToBackendDb(o);
     });
   }
-  ApiOrders(newOrder) {
+  async ApiOrders(newOrder, fills) {
     //code to send the order to the API
     //newOrder
-    redisManager.getInstance().sendToB1(newOrder.orderId, {
+    const redisManagerInstance = redisManager.getInstance();
+    fills.forEach((filledOrder) => {
+      redisManagerInstance.sendToB1(filledOrder.order_id, {
+        type: "ORDER_FILLED",
+        payload: {
+          executedQuantity: filledOrder.executedQuantity,
+          order: filledOrder,
+          status: "success",
+        },
+      });
+    });
+
+    redisManagerInstance.sendToB1(newOrder.order_id, {
       type: "ORDER_PLACED",
       payload: {
         executedQuantity: newOrder.executedQuantity,

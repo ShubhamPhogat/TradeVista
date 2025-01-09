@@ -1,5 +1,5 @@
 export class order {
-  constructor(market, side, quantity, user_id, order_id, filled, price) {
+  constructor(market, side, quantity, user_id, order_id, filled, price, ioc) {
     if (price) price = parseFloat(price);
     if (quantity) quantity = parseFloat(quantity);
     if (isNaN(price) || isNaN(quantity)) {
@@ -15,6 +15,7 @@ export class order {
     this.filled = filled || 0.0;
     this.price = price || 0.0;
     this.cancelled = false;
+    this.ioc = ioc || false;
   }
 }
 
@@ -39,7 +40,7 @@ export class Heap {
 
   push(order) {
     this.heap.push(order);
-    this.heap.heapifyUp();
+    this.heapifyUp();
     this.totalVolume += order.quantity;
   }
   heapifyUp() {
@@ -65,7 +66,7 @@ export class Heap {
     const lastElement = this.heap.pop();
     if (this.heap.length > 0) {
       this.heap[0] = lastElement;
-      this.heap.heapifyDown();
+      this.heapifyDown();
     }
     this.totalVolume -= minElement.quantity;
     return minElement;

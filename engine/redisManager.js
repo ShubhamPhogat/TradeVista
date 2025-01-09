@@ -1,18 +1,29 @@
+import { createClient } from "redis";
+
 export class redisManager {
   constructor() {
     if (redisManager.instance) {
       return redisManager.instance;
     } else {
-      this.client = new RedisClient();
-
-      this.client.connect();
-
       redisManager.instance = this;
     }
   }
-  static getInstance() {
+  async init() {
+    if (!this.client) {
+      try {
+        this.client = new createClient({ url: "redis://127.0.0.1:6381" });
+
+        await this.client.connect();
+        console.log("Connected to Redis to else  ");
+      } catch (error) {
+        console.log("error in connecting to redis in redismanager", error);
+      }
+    }
+  }
+  static async getInstance() {
     if (!redisManager.instance) {
-      return (redisManager.instance = new redisManager());
+      redisManager.instance = new redisManager();
+      redisManager.instance.init();
     } else {
       return redisManager.instance;
     }
@@ -28,24 +39,38 @@ export class redisManagerToBackendDb {
     if (redisManagerToBackendDb.instance) {
       return redisManagerToBackendDb.instance;
     } else {
-      this.client = new RedisClient({
-        url: process.env.REDIS_MANAGER_BACKEND_DB,
-      });
-
-      this.client.connect();
-
       redisManagerToBackendDb.instance = this;
     }
   }
-  static getInstance() {
+
+  async init() {
+    if (!this.client) {
+      try {
+        this.client = new createClient({ url: "redis://127.0.0.1:6380" });
+        await this.client.connect();
+        console.log("Connected to Redis to db  ");
+      } catch (error) {
+        console.log(
+          "error in connecting to redis in redismanagertobackenddb",
+          error
+        );
+      }
+    }
+  }
+
+  static async getInstance() {
     if (!redisManagerToBackendDb.instance) {
-      return (redisManagerToBackendDb.instance = new redisManagerToBackendDb());
+      redisManagerToBackendDb.instance = new redisManagerToBackendDb();
+      redisManagerToBackendDb.instance.init();
     } else {
       return redisManagerToBackendDb.instance;
     }
   }
 
-  sendToBackendDb(message, clientId) {
-    this.client.publish(clientId, JSON.stringify(message));
+  sendToBackendDb(message) {
+    if (this.client.isOpen) {
+      this.client.lPush("message", JSON.stringify(message));
+      console.log("published", message);
+    }
   }
 }
