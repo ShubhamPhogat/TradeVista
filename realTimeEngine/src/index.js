@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { userManager } from "./controllers/userManaget";
+import { userManager } from "./controllers/userManaget.js";
 
 const wss = new WebSocketServer({ port: 8080 });
 

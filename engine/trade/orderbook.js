@@ -11,8 +11,8 @@ export class orderBook {
     lastOrder_id
   ) {
     this.market = market || "";
-    this.bids = new Heap(minComparator);
-    this.asks = new Heap(maxComparator);
+    this.bids = new Heap(maxComparator);
+    this.asks = new Heap(minComparator);
     this.baseAssets = baseAssets || "";
     this.quoteAssets = quoteAssets || "";
     this.current_price = current_price || "";
@@ -20,7 +20,6 @@ export class orderBook {
   }
 
   addOrder(order) {
-    console.log("order added", order);
     if (order.side === "buy") {
       if (order.ioc === true && this.bids.totalVolume < order.quantity) {
         return {
@@ -30,7 +29,8 @@ export class orderBook {
         };
       }
 
-      let { executedQuantity, fills, status } = this.matchBid(order);
+      let { executedQuantity, fills, status } = this.matchAsk(order);
+      console.log("executed Quantity ", executedQuantity);
       let { depthAsk, depthBid } = this.getDepth();
       order.filled += executedQuantity;
       if (executedQuantity === order.quantity) {
@@ -42,7 +42,7 @@ export class orderBook {
           fills,
         };
       } else {
-        this.asks.push(order);
+        this.bids.push(order);
       }
       return {
         fills: fills,
@@ -61,7 +61,7 @@ export class orderBook {
         };
       }
 
-      let { executedQuantity, fills, status } = this.matchAsk(order);
+      let { executedQuantity, fills, status } = this.matchBid(order);
       let { depthAsk, depthBid } = this.getDepth();
       order.filled = executedQuantity;
       if (executedQuantity === order.quantity) {
@@ -72,37 +72,44 @@ export class orderBook {
           depthBid: depthBid,
           fills,
         };
+      } else {
+        this.asks.push(order);
+        return {
+          executedOrder: order,
+          fills: fills,
+          status: "success",
+          depthAsk: depthAsk,
+          depthBid: depthBid,
+        };
       }
-
-      this.bids.push(order);
-      return {
-        executedOrder: order,
-        fills: fills,
-        status: "success",
-        depthAsk: depthAsk,
-        depthBid: depthBid,
-      };
     }
   }
 
   matchBid(order) {
-    console.log("matchBid");
-    if (this.bids.length === 0 || this.bids[0] > order.price) {
+    console.log("length", this.bids.heap.length, order);
+    if (this.bids.heap.length === 0 || this.bids.heap[0] > order.price) {
+      console.log("order added to asks");
       return { executedQuantity: 0, fills: [], status: "failure" };
     }
     let executedQuantity = 0;
     let fills = [];
-    while (true && this.bids.length > 0) {
-      if (this.bids[0].cancelled) {
+    while (true && this.bids.heap.length > 0) {
+      console.log("running ", this.bids.heap.length);
+      if (this.bids.heap[0].cancelled) {
         this.bids.pop();
         continue;
       }
-      if (this.bids.length === 0 || this.bids[0].price > order.price) break;
+      if (
+        this.bids.heap.length === 0 ||
+        this.bids.heap[0].price < order.price ||
+        order.quantity === executedQuantity
+      )
+        break;
       let currentBid = this.bids.pop();
-      let currentBidRemainingQuantity = currentBid.quantity - currentBid.fills;
+      let currentBidRemainingQuantity = currentBid.quantity - currentBid.filled;
       let minQuantityToExecute = Math.min(
         currentBidRemainingQuantity,
-        order.quantity
+        order.quantity - executedQuantity
       );
       executedQuantity += minQuantityToExecute;
       currentBid.fills += minQuantityToExecute;
@@ -119,22 +126,30 @@ export class orderBook {
   }
 
   matchAsk(order) {
-    if (this.asks.length === 0 || this.asks[0] < order.price) {
-      return { executedQuantity: 0, fills: [], statusbar: "failure" };
+    if (this.asks.heap.length === 0 || this.asks[0] < order.price) {
+      console.log("order added to bids", order);
+      return { executedQuantity: 0, fills: [], status: "failure" };
     }
     let executedQuantity = 0;
     let fills = [];
-    while (true && this.asks.length > 0) {
-      if (this.asks[0].cancelled) {
+    while (true && this.asks.heap.length > 0) {
+      if (this.asks.heap[0].cancelled) {
         this.asks.pop();
         continue;
       }
-      if (this.asks.length === 0 || this.asks[0].price < order.price) break;
+      if (
+        this.asks.heap.length === 0 ||
+        this.asks.heap[0].price > order.price ||
+        order.quantity === executedQuantity
+      ) {
+        break;
+      }
       let currentAsk = this.asks.pop();
-      let currentAskRemainingQuantity = currentAsk.quantity - currentAsk.fills;
+      console.log("popend ask ", currentAsk.quantity, currentAsk.filled);
+      let currentAskRemainingQuantity = currentAsk.quantity - currentAsk.filled;
       let minQuantityToExecute = Math.min(
         currentAskRemainingQuantity,
-        order.quantity
+        order.quantity - executedQuantity
       );
       executedQuantity += minQuantityToExecute;
       currentAsk.fills += minQuantityToExecute;
@@ -146,6 +161,7 @@ export class orderBook {
         fills.push(currentAsk);
       }
     }
+    console.log("engine compute", executedQuantity);
     return { executedQuantity, fills, status: "success" };
   }
   getDepth() {
@@ -153,32 +169,32 @@ export class orderBook {
     const asksMap = new Map();
 
     // Aggregate bids
-    for (let i = 0; i < this.bids.length; i++) {
-      const order = this.bids[i];
+    for (let i = 0; i < this.bids.heap.length; i++) {
+      const order = this.bids.heap[i];
       const currentQuantity = bidsMap.get(order.price) || 0;
       bidsMap.set(order.price, currentQuantity + order.quantity);
     }
 
     // Aggregate asks
-    for (let i = 0; i < this.asks.length; i++) {
-      const order = this.asks[i];
+    for (let i = 0; i < this.asks.heap.length; i++) {
+      const order = this.asks.heap[i];
       const currentQuantity = asksMap.get(order.price) || 0;
       asksMap.set(order.price, currentQuantity + order.quantity);
     }
 
     // Convert Map to Array
-    const bids = Array.from(bidsMap.entries()).map(([price, quantity]) => [
+    const depthBid = Array.from(bidsMap.entries()).map(([price, quantity]) => [
       price,
       quantity,
     ]);
-    const asks = Array.from(asksMap.entries()).map(([price, quantity]) => [
+    const depthAsk = Array.from(asksMap.entries()).map(([price, quantity]) => [
       price,
       quantity,
     ]);
 
     return {
-      bids,
-      asks,
+      depthAsk,
+      depthBid,
     };
   }
 }

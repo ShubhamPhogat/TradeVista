@@ -1,4 +1,4 @@
-import { subsriptionManager } from "./manageSubscription";
+import { subsriptionManager } from "./manageSubscription.js";
 
 export class user {
   constructor(ws, id) {

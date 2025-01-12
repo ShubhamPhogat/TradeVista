@@ -2,20 +2,25 @@ const express = require("express");
 const klineRouter = express.Router();
 const { Client } = require("pg");
 const client = new Client({
-  user: process.env.POSTGRES_USER,
-  host: process.env.POSTGRES_HOST,
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT,
+  user: "myuser",
+  host: "localhost",
+  password: "1234567VISTA",
+  port: 5432,
 });
+client.connect();
 
-klineRouter.get("/", async (req, res) => {
-  // logic to fetch kline data from your database
-  const { market, startTime, endTime, interval } = req.query;
+klineRouter.post("/", async (req, res) => {
+  console.log("hiteed !!!");
+  const { market, interval } = req.body;
+  const currentTime = new Date();
 
+  const startTime = new Date(Math.floor(currentTime.getTime() / 60000) * 60000);
+
+  const endTime = new Date(startTime.getTime() + 60000);
   let query = null;
   switch (interval) {
     case "1m":
-      query = `SELECT * FROM klines_1m WHERE bucket >= $1 AND bucket <= $2`;
+      query = `SELECT * FROM klines_1m_btc WHERE bucket >= $1 AND bucket <= $2`;
 
       break;
 
@@ -31,8 +36,8 @@ klineRouter.get("/", async (req, res) => {
   }
   try {
     const result = await client.query(query, [
-      new Date(startTime * 1000),
-      new Date(endTime * 1000),
+      new Date(startTime),
+      new Date(endTime),
     ]);
     const klineData = result.rows.map((row) => ({
       bucket: row.bucket, // Time bucket (e.g., start of the week)

@@ -5,16 +5,23 @@ export class subsriptionManager {
     if (subsriptionManager.instacne) {
       return subsriptionManager.instacne;
     }
-    this.userSubscription = new Map();
-    this.marketSubscription = new Map();
-    this.client = createClient({ url: process.env.REDIS_URL });
-    this.client.connect();
+
     subsriptionManager.instacne = this;
   }
 
-  static getInstance() {
+  async init() {
+    if (!this.client) {
+      this.userSubscription = new Map();
+      this.marketSubscription = new Map();
+      this.client = createClient({ url: "redis://127.0.0.1:6381" });
+      await this.client.connect();
+    }
+  }
+
+  static async getInstance() {
     if (!subsriptionManager.instacne) {
-      return new subsriptionManager();
+      subsriptionManager.instacne = new subsriptionManager();
+      this.init();
     }
     return subsriptionManager.instacne;
   }

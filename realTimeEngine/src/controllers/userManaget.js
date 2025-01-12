@@ -1,5 +1,6 @@
 import { v4 } from "uuid";
-import { subsriptionManager } from "./manageSubscription";
+import { subsriptionManager } from "./manageSubscription.js";
+import { user } from "./user.js";
 export class userManager {
   constructor() {
     if (userManager.instance) {
@@ -18,7 +19,7 @@ export class userManager {
 
   addUser(ws) {
     let userId = v4();
-    this.users.set(userId, new UserActivation(userId, ws));
+    this.users.set(userId, new user(userId, ws));
 
     this.deregisterOnClose(ws, userId);
   }

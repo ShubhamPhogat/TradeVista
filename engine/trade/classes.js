@@ -77,22 +77,25 @@ export class Heap {
     const length = this.heap.length;
     const element = this.heap[index];
     while (true) {
-      let leftChildIndex = index * 2;
-      let rightChildIndex = index * 2 + 1;
-      let leftchild = this.heap[leftChildIndex];
+      let leftChildIndex = 2 * index + 1; // Correcting the child index calculations
+      let rightChildIndex = 2 * index + 2;
+      let leftChild = this.heap[leftChildIndex];
       let rightChild = this.heap[rightChildIndex];
       let swap = null;
-      if (leftChildIndex < length) {
-        if (this.comparator(leftchild, element)) {
-          swap = leftChildIndex;
-        }
+
+      if (leftChildIndex < length && this.comparator(leftChild, element)) {
+        swap = leftChildIndex;
       }
-      if (rightChildIndex < length) {
-        if (swap == null || this.comparator(rightChild, this.heap[swap])) {
-          swap = rightChildIndex;
-        }
+      if (
+        rightChildIndex < length &&
+        this.comparator(rightChild, swap === null ? element : leftChild)
+      ) {
+        swap = rightChildIndex;
       }
+
       if (swap === null) break;
+
+      // Swap the elements
       this.heap[index] = this.heap[swap];
       index = swap;
     }

@@ -11,7 +11,7 @@ export class redisManager {
   async init() {
     if (!this.client) {
       try {
-        this.client = new createClient({ url: "redis://127.0.0.1:6381" });
+        this.client = new createClient({ url: "redis://127.0.0.1:6379" });
 
         await this.client.connect();
         console.log("Connected to Redis to else  ");
@@ -23,54 +23,66 @@ export class redisManager {
   static async getInstance() {
     if (!redisManager.instance) {
       redisManager.instance = new redisManager();
-      redisManager.instance.init();
+      await redisManager.instance.init();
+      return redisManager.instance;
     } else {
       return redisManager.instance;
     }
   }
 
-  sendToB1(message, clientId) {
-    this.client.publish(clientId, JSON.stringify(message));
+  async sendToB1(clientId, message) {
+    console.log("this is client id", clientId, message);
+    if (!this.client || !this.client.isOpen) {
+      throw new Error("Redis client is not connected.");
+    }
+    try {
+      await this.client.publish(clientId, JSON.stringify(message));
+      console.log(`Message sent to clientId ${clientId}:`, message);
+    } catch (error) {
+      console.error("Error in sending message to Redis:", error);
+    }
   }
 }
 
-export class redisManagerToBackendDb {
+export class RedisManagerToBackendDb {
   constructor() {
-    if (redisManagerToBackendDb.instance) {
-      return redisManagerToBackendDb.instance;
-    } else {
-      redisManagerToBackendDb.instance = this;
+    if (RedisManagerToBackendDb.instance) {
+      return RedisManagerToBackendDb.instance;
     }
+    RedisManagerToBackendDb.instance = this;
   }
 
   async init() {
-    if (!this.client) {
-      try {
-        this.client = new createClient({ url: "redis://127.0.0.1:6380" });
-        await this.client.connect();
-        console.log("Connected to Redis to db  ");
-      } catch (error) {
-        console.log(
-          "error in connecting to redis in redismanagertobackenddb",
-          error
-        );
-      }
+    if (!this.publisher) {
+      this.publisher = createClient({ url: "redis://127.0.0.1:6380" });
+
+      await this.publisher.connect();
     }
   }
 
   static async getInstance() {
-    if (!redisManagerToBackendDb.instance) {
-      redisManagerToBackendDb.instance = new redisManagerToBackendDb();
-      redisManagerToBackendDb.instance.init();
-    } else {
-      return redisManagerToBackendDb.instance;
+    if (!RedisManagerToBackendDb.instance) {
+      const instance = new RedisManagerToBackendDb();
+      await instance.init(); // Ensure async initialization completes
     }
+    return RedisManagerToBackendDb.instance;
   }
 
-  sendToBackendDb(message) {
-    if (this.client.isOpen) {
-      this.client.lPush("message", JSON.stringify(message));
-      console.log("published", message);
+  async sendToDb(message) {
+    console.log("Message to publish:", message);
+
+    if (this.publisher?.isOpen) {
+      try {
+        // Push the message to Redis queue
+        await this.publisher.lPush("message", JSON.stringify({ message }));
+        console.log("Published:", message);
+      } catch (err) {
+        console.error("Error in publishing message:", err);
+        throw err; // Re-throw the error to the caller
+      }
+    } else {
+      console.error("Publisher is not open.");
+      throw new Error("Publisher is not open.");
     }
   }
 }

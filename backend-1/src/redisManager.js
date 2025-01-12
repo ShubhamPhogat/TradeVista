@@ -28,27 +28,53 @@ class RedisManager {
   }
 
   async createAndWait(message) {
-    console.log(message);
-    const order_id = v4();
+    console.log("Message to publish:", message);
+    const order_id = v4(); // Unique identifier for the operation
 
     if (this.publisher?.isOpen) {
-      await this.publisher.lPush(
-        "message",
-        JSON.stringify({ order_id, message })
-      );
-      console.log("published", message);
-      return new Promise((resolve) => {
-        this.client.subscribe(order_id, (message) => {
-          resolve(JSON.parse(message));
+      try {
+        // Push the message to Redis queue
+        await this.publisher.lPush(
+          "message",
+          JSON.stringify({ order_id, message })
+        );
+        console.log("Published:", message);
+
+        return new Promise((resolve, reject) => {
+          // Define cleanup logic
+          const cleanup = () => {
+            this.client.unsubscribe(order_id); // Unsubscribe from the channel
+            this.client.removeAllListeners("message"); // Remove all listeners for messages
+            this.client.removeAllListeners("error"); // Remove all listeners for errors
+          };
+
+          // Subscribe to the unique channel
+          this.client.subscribe(order_id, (response) => {
+            try {
+              console.log("Response received:", response);
+              resolve(JSON.parse(response)); // Resolve the promise with the response
+            } catch (error) {
+              console.error("Error parsing response:", error);
+              reject(error);
+            } finally {
+              cleanup(); // Cleanup after receiving the response
+            }
+          });
+
+          // Handle Redis client errors
+          this.client.on("error", (err) => {
+            console.error("Redis subscription error:", err);
+            reject(err); // Reject the promise on error
+            cleanup(); // Cleanup after an error
+          });
         });
-        this.client.on("error", (err) => {
-          console.error("Error subscribing to Redis queue:", err);
-        });
-        //close the connection
-        // this.client.quit();
-      });
+      } catch (err) {
+        console.error("Error in publishing message:", err);
+        throw err; // Re-throw the error to the caller
+      }
     } else {
-      console.log("publisher not open");
+      console.error("Publisher is not open.");
+      throw new Error("Publisher is not open.");
     }
   }
 }
