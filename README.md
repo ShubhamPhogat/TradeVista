@@ -10,9 +10,9 @@ ISTA -p 5432:5432 timescale/timescaledb:latest-pg14
 nodemon index  
 cd ..  
 cd engine  
-nodemon index
-order create route -http://localhost:3000/api/v1/order  (post req)
-order format
+nodemon index  
+order create route -http://localhost:3000/api/v1/order  (post req)  
+order format  
   {"market":"BTC",
   "side":"sell",
   "quantity":4,
@@ -22,12 +22,12 @@ order format
   "baseAsset":"BTC",
   "ioc":false
     
-  }   
-  kline data route  http://localhost:3000/api/v1/Kline   (post req)
+  }     
+  kline data route  http://localhost:3000/api/v1/Kline   (post req)  
 
-  format  
+  format    
   {
     "interval":"1m",
     "market":"BTC"
-}  
+}    
 market should be BTC only 
