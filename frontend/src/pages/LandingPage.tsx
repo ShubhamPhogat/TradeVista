@@ -1,8 +1,8 @@
 
 const LandingPage = () => {
     return (
-        <div className="bg-zinc-900 h-screen w-screen ">
-            <div className="p-40">
+        <div className="bg-zinc-900 pt-20 h-screen w-screen ">
+            <div className="mb-40 px-40">
             <div className="hero text-white uppercase text-8xl font-grotesk">
                 <h1>Trading Made</h1>
             </div>
