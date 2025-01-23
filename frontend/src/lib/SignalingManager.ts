@@ -77,7 +77,7 @@ export class SignalingManager{
         this.callbacks[type].push({callback,id});
     }
 
-    async deregisterCallback(type:string,id:string){
+    async deRegisterCallback(type:string,id:string){
       if(this.callbacks[type]){
         const index = this.callbacks[type].findIndex((callback:any)=>callback.id === id);
         if(index !== -1){

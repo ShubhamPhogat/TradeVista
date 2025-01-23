@@ -12,7 +12,7 @@ function App() {
    <Routes>
       <Route  element={<Mainlayout/>} > 
        <Route path="/" element={<LandingPage/>} />
-       <Route path="/Dashboard" element={<Dashboard/>}/>
+       <Route path="/Dashboard/:market" element={<Dashboard/>}/>
       </Route>
    </Routes>
   )

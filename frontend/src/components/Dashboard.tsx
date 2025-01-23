@@ -5,15 +5,18 @@ import { initialData } from "../lib/constants"
 import OrderBook from "./OrderBook"
 import StockInfo from "./StockInfo"
 import BuyOrder from "./BuyOrder"
+import { useParams } from "react-router-dom"
 
 const Dashboard = () => {
+    const {market} = useParams();
+    
     return (
         <div className="flex flex-1 flex-col overflow-auto bg-baseBackgroundL0 text-baseTextHighEmphasis">
             <div className="flex flex-col flex-1">
                 <div className="flex flex-row mb-4 h-screen flex-1 gap-2 overflow-hidden px-4">
                     <div className="flex flex-col flex-1 gap-2">
                         <div className="flex flex-col flex-1 gap-2 overflow-hidden">
-                            <StockInfo/>
+                            <StockInfo market={market ?? ""}/>
 
                         </div>
                         <div className="flex flex-row h-[620px] gap-2">

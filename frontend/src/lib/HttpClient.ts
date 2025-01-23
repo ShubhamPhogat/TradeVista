@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://api.binance.com/api/v3";
+const BASE_URL = "https://exchange-proxy.100xdevs.com/api/v1";
 
 export async function getTicker(market:string) : Promise<any>{
     const tickers = await getTickers();
