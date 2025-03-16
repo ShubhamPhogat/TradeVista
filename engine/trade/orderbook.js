@@ -31,6 +31,7 @@ export class orderBook {
 
       let { executedQuantity, fills, status } = this.matchAsk(order);
       console.log("executed Quantity ", executedQuantity);
+      console.log("fills are", fills);
       let { depthAsk, depthBid } = this.getDepth();
       order.filled += executedQuantity;
       if (executedQuantity === order.quantity) {
@@ -87,8 +88,8 @@ export class orderBook {
 
   matchBid(order) {
     console.log("length", this.bids.heap.length, order);
-    if (this.bids.heap.length === 0 || this.bids.heap[0] > order.price) {
-      console.log("order added to asks");
+    if (this.bids.heap.length === 0 || this.bids.heap[0] < order.price) {
+      console.log("order added to asks", this.bids.heap.length);
       return { executedQuantity: 0, fills: [], status: "failure" };
     }
     let executedQuantity = 0;
@@ -112,9 +113,9 @@ export class orderBook {
         order.quantity - executedQuantity
       );
       executedQuantity += minQuantityToExecute;
-      currentBid.fills += minQuantityToExecute;
+      currentBid.filled += minQuantityToExecute;
 
-      if (currentBid.quantity > currentBid.fills) {
+      if (currentBid.quantity > currentBid.filled) {
         this.bids.push(currentBid);
         break;
       } else {
@@ -126,7 +127,7 @@ export class orderBook {
   }
 
   matchAsk(order) {
-    if (this.asks.heap.length === 0 || this.asks[0] < order.price) {
+    if (this.asks.heap.length === 0 || this.asks[0] > order.price) {
       console.log("order added to bids", order);
       return { executedQuantity: 0, fills: [], status: "failure" };
     }
@@ -152,9 +153,9 @@ export class orderBook {
         order.quantity - executedQuantity
       );
       executedQuantity += minQuantityToExecute;
-      currentAsk.fills += minQuantityToExecute;
+      currentAsk.filled += minQuantityToExecute;
 
-      if (currentAsk.quantity > currentAsk.fills) {
+      if (currentAsk.quantity > currentAsk.filled) {
         this.asks.push(currentAsk);
         break;
       } else {

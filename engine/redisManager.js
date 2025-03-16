@@ -31,7 +31,7 @@ export class redisManager {
   }
 
   async sendToB1(clientId, message) {
-    console.log("this is client id", clientId, message);
+    // console.log("this is client id", clientId, message);
     if (!this.client || !this.client.isOpen) {
       throw new Error("Redis client is not connected.");
     }
@@ -74,8 +74,27 @@ export class RedisManagerToBackendDb {
     if (this.publisher?.isOpen) {
       try {
         // Push the message to Redis queue
-        await this.publisher.lPush("message", JSON.stringify({ message }));
-        console.log("Published:", message);
+        const formattedMessage = {
+          type: "CREATE_ORDER",
+          order_id: message.order_id,
+          data: {
+            market: message.market,
+            side: message.side,
+            quantity: message.quantity,
+            user_id: message.user_id,
+            price: message.price,
+            fills: String(message.filled),
+            cancelled: message.cancelled,
+            ioc: message.ioc,
+            quoteAsset: "USD",
+            baseAsset: message.market,
+          },
+        };
+        await this.publisher.lPush(
+          "message",
+          JSON.stringify({ formattedMessage })
+        );
+        // console.log("Published:", formattedMessage);
       } catch (err) {
         console.error("Error in publishing message:", err);
         throw err; // Re-throw the error to the caller

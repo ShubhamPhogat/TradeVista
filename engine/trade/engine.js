@@ -159,7 +159,7 @@ export class Engine {
       console.log("Order book depths:", executedOrder);
 
       if (executedOrder) {
-        // await this.processOrdersToDb(fills, executedOrder);
+        await this.processOrdersToDb(fills, executedOrder);
         try {
           const redisManager = await RedisManagerToBackendDb.getInstance();
           // Send executed order first
@@ -190,22 +190,22 @@ export class Engine {
     }
   }
 
-  // async processOrdersToDb(fills, completedOrder) {
-  //   try {
-  //     const redisManager = await RedisManagerToBackendDb.getInstance();
+  async processOrdersToDb(fills, completedOrder) {
+    try {
+      const redisManager = await RedisManagerToBackendDb.getInstance();
 
-  //     // Send completed order first
-  //     await redisManager.sendToDb(completedOrder);
+      // Send completed order first
+      await redisManager.sendToDb(completedOrder);
 
-  //     // Process fills sequentially to maintain order
-  //     for (const fill of fills) {
-  //       await redisManager.sendToDb(fill);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error processing orders to DB:", error);
-  //     throw error;
-  //   }
-  // }
+      // Process fills sequentially to maintain order
+      for (const fill of fills) {
+        await redisManager.sendToDb(fill);
+      }
+    } catch (error) {
+      console.error("Error processing orders to DB:", error);
+      throw error;
+    }
+  }
   async ApiOrders(newOrder, fills) {
     //code to send the order to the API
     //newOrder

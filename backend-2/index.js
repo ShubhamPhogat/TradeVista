@@ -3,11 +3,12 @@ dotenv.config({ path: "/.env" });
 
 import { createClient } from "redis";
 import { processOrder } from "./process.js";
-import { refeshViews } from "./realTimeDb/cron.js";
+import { initRefreshViews } from "./realTimeDb/cron.js";
 import pkg from "pg";
 
 const { Pool } = pkg;
 
+// Create PostgreSQL connection pool
 const pool = new Pool({
   user: "myuser",
   host: "localhost",
@@ -47,7 +48,9 @@ async function createRedisClient() {
 async function reconnectRedis() {
   try {
     if (redisClient) {
-      await redisClient.quit();
+      await redisClient
+        .quit()
+        .catch((err) => console.error("Error quitting Redis client:", err));
     }
     redisClient = await createRedisClient();
     await redisClient.connect();
@@ -61,12 +64,11 @@ async function reconnectRedis() {
 async function insertOrder(order, order_id) {
   const client = await pool.connect();
   try {
-    console.log("Inserting order", order);
+    console.log("Inserting order", order, order_id);
     const { market, user_id, price, quantity, filled } = order;
     const tableName = `orders_${market.toLowerCase()}`;
 
     // Check if table exists
-
     const tableExistsQuery = `
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -83,18 +85,18 @@ async function insertOrder(order, order_id) {
         const createTableQuery = `
           CREATE TABLE ${tableName} (
             id SERIAL,
-        order_id VARCHAR(255) NOT NULL,
-        user_id VARCHAR(255) NOT NULL,
-        time TIMESTAMP NOT NULL,
-        price DOUBLE PRECISION NOT NULL,
-        quantity DOUBLE PRECISION NOT NULL,
-        filled DOUBLE PRECISION DEFAULT 0,
-        PRIMARY KEY (id, time)  -- Composite primary key
+            order_id VARCHAR(255) NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            time TIMESTAMP NOT NULL,
+            price DOUBLE PRECISION NOT NULL,
+            quantity DOUBLE PRECISION NOT NULL,
+            filled DOUBLE PRECISION DEFAULT 0,
+            PRIMARY KEY (id, time)  -- Composite primary key
           );
         `;
         await client.query(createTableQuery);
         await client.query(
-          `SELECT create_hypertable('${tableName}', 'time',if_not_exists => TRUE);`
+          `SELECT create_hypertable('${tableName}', 'time', if_not_exists => TRUE);`
         );
 
         // Create materialized views
@@ -144,24 +146,42 @@ async function insertOrder(order, order_id) {
 }
 
 async function main() {
-  const redisClient = createClient();
-  await redisClient.connect({ url: "redis://127.0.0.1:6380" });
-  console.log("connected to redis");
+  try {
+    // Initialize and connect Redis client
+    redisClient = await createRedisClient();
+    await redisClient.connect();
+    console.log("Connected to Redis");
 
-  while (true) {
-    const req = await redisClient.brPop("message", 0);
-    if (!req) {
-    } else {
-      const { key, element } = req;
-      const response = JSON.parse(element);
-      console.log(response);
+    // Initialize view refresh cron job with the pool
+    initRefreshViews(pool);
+
+    // Start processing messages
+    while (true) {
       try {
-        const op2 = await insertOrder(response.message.data, response.order_id);
-        // const op1 = await processOrder(response);
-      } catch (error) {
-        console.log(error);
+        const req = await redisClient.brPop("message", 0);
+        if (req) {
+          const { key, element } = req;
+          const response = JSON.parse(element);
+          console.log("this is the res", response);
+          try {
+            const op2 = await insertOrder(
+              response.formattedMessage.data,
+              response.formattedMessage.order_id
+            );
+            // const op1 = await processOrder(response);
+          } catch (error) {
+            console.error("Error processing order:", error);
+          }
+        }
+      } catch (redisError) {
+        console.error("Redis operation error:", redisError);
+        // Wait a bit before trying again to avoid tight loop
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
+  } catch (error) {
+    console.error("Fatal error in main:", error);
+    process.exit(1);
   }
 }
 
@@ -169,22 +189,27 @@ async function main() {
 process.on("SIGTERM", async () => {
   console.log("Received SIGTERM. Cleaning up...");
   if (redisClient) {
-    await redisClient.quit();
+    await redisClient
+      .quit()
+      .catch((err) => console.error("Error quitting Redis client:", err));
   }
-  await pool.end();
+  await pool.end().catch((err) => console.error("Error ending pool:", err));
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
   console.log("Received SIGINT. Cleaning up...");
   if (redisClient) {
-    await redisClient.quit();
+    await redisClient
+      .quit()
+      .catch((err) => console.error("Error quitting Redis client:", err));
   }
-  await pool.end();
+  await pool.end().catch((err) => console.error("Error ending pool:", err));
   process.exit(0);
 });
 
 // Start the queue listener
-// listenToQueue();
-main();
-refeshViews();
+main().catch((err) => {
+  console.error("Uncaught error in main:", err);
+  process.exit(1);
+});

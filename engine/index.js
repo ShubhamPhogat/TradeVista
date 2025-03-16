@@ -22,7 +22,7 @@ async function main() {
 
       // Process the message
       element = JSON.parse(element);
-      console.log("this is order id ", element.order_id);
+      // console.log("this is order id ", element.order_id);
       const engine = new Engine(element.message.data);
       engine.process(element.order_id, element.message);
     }
