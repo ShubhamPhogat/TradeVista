@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  scrollbar-color: #202127 transparent;
+  scrollbar-width: thin;
+}
+
 @font-face{
   font-family: 'Nueue';
   src: url('/fonts/NeueMontreal-Regular.woff2') format('woff2');
@@ -19,4 +24,31 @@
   src:url('/fonts/icomoon.woff') format('woff');
   font-weight: 400;
   font-style: normal;
+}
+.text-baseTextHighEmphasis {
+  --tw-text-opacity: 1;
+  color: rgb(244 244 246 / var(--tw-text-opacity, 1));
+}
+
+.text-baseTextMedEmphasis {
+  --tw-text-opacity: 1;
+  color: rgb(150 159 175 / var(--tw-text-opacity, 1));
+}
+.bg-baseBackgroundL1 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(20 21 27 / var(--tw-bg-opacity, 1));
+}
+
+.bg-baseBackgroundL2 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(32 33 39 / var(--tw-bg-opacity, 1));
+}
+
+.text-greenText {
+  --tw-text-opacity: 1;
+  color: rgb(0 194 120 / var(--tw-text-opacity, 1));
+}
+.text-baseTextLowEmphasis {
+  --tw-text-opacity: 1;
+  color: rgb(117 121 138 / var(--tw-text-opacity, 1));
 }
