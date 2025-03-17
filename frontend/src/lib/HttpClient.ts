@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://exchange-proxy.100xdevs.com/api/v1";
+const BASE_URL = "http://localhost:3000/api/v1";
 
 export async function getTicker(market:string) : Promise<any>{
     const tickers = await getTickers();
@@ -22,7 +22,8 @@ export async function getDepth(market: string): Promise<any> {
     return response.data;
 }
 export async function getKlines(market: string, interval: string,startTime:number,endTime:number): Promise<any> {
- const response = await axios.get(`${BASE_URL}/klines?symbol=${market}&interval=${interval}&startTime=${startTime}&endTime=${endTime}`);
+ const response = await axios.post(`${BASE_URL}/Klines`,{ "interval":"1m", "market":"BTC" });
+ console.log(response)
   const data = response.data
   return data.sort((a:any,b:any)=>Number(a.end)<Number(b.end)?-1:1);
 }

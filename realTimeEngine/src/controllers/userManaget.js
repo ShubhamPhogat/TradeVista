@@ -10,7 +10,7 @@ export class userManager {
     userManager.instance = this;
   }
 
-  getInstance() {
+  static getInstance() {
     if (!userManager.instance) {
       return new userManager();
     }

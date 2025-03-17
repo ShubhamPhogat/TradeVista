@@ -1,6 +1,6 @@
 
 
-export const BASE_URL = "wss://ws.backpack.exchange/" //Add the URL 
+export const BASE_URL = "ws://localhost:8080" //Add the URL 
 
 export class SignalingManager{
     private ws:WebSocket;

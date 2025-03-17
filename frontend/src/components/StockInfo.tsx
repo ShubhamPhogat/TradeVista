@@ -7,7 +7,7 @@ const StockInfo = ({market}:{market:string}) => {
   const [ticker, setTicker] = useState<Ticker | null>(null);
 
   useEffect(() => {
-      getTicker(market).then(setTicker);
+    //   getTicker(market).then(setTicker);
       SignalingManager.getInstance().registerCallback("ticker", (data: Partial<Ticker>)  =>  setTicker(prevTicker => ({
           firstPrice: data?.firstPrice ?? prevTicker?.firstPrice ?? '',
           high: data?.high ?? prevTicker?.high ?? '',
