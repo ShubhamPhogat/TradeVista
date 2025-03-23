@@ -138,7 +138,7 @@ async function insertOrder(order, order_id) {
       quantity,
       filled || 0,
     ]);
-
+    await processOrder(order);
     return result.rows[0];
   } finally {
     client.release();

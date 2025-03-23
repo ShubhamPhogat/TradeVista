@@ -1,6 +1,7 @@
 const express = require("express");
 const klineRouter = express.Router();
 const { Client } = require("pg");
+const redisManager = require("../redisManager");
 const client = new Client({
   user: "myuser",
   host: "localhost",
@@ -10,7 +11,6 @@ const client = new Client({
 client.connect();
 
 klineRouter.post("/", async (req, res) => {
-  console.log("hiteed !!!");
   const { market, interval } = req.body;
   const currentTime = new Date();
 
@@ -52,6 +52,21 @@ klineRouter.post("/", async (req, res) => {
     console.log(err);
     res.status(500).send(err);
   }
+});
+
+klineRouter.post("/depth", async (req, res) => {
+  const { market } = req.body;
+  if (!market || market === "") {
+    return res.status(400).send({ message: "Market is required" });
+  }
+  const rm = await redisManager.getInstance();
+  const response = await rm.createAndWait({
+    type: "GET_DEPTH",
+    data: {
+      market,
+    },
+  });
+  res.json(response);
 });
 
 module.exports = klineRouter;

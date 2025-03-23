@@ -4,8 +4,9 @@ const redisManager = require("../redisManager");
 const orderRoute = express.Router();
 
 orderRoute.post("/", async (req, res) => {
-  const { market, side, quantity, user_id, price, quoteAsset, baseAsset } =
-    req.body;
+  const { market, side, quantity, price, quoteAsset, baseAsset } = req.body;
+  console.log(market, side, quantity, price, quoteAsset, baseAsset);
+  const user_id = "aslkdjfalsdjkfg34r8lajdsf";
   if (!market || !side || !quantity || !user_id || !price || !quoteAsset) {
     return res.status(400).json({ message: "All fields are required" });
   }

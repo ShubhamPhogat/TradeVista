@@ -19,6 +19,11 @@ export class orderBook {
     this.lastOrder_id = lastOrder_id || "";
   }
 
+  calculateDepth() {
+    let { depthAsk, depthBid } = this.getDepth();
+    return { depthAsk, depthBid };
+  }
+
   addOrder(order) {
     if (order.side === "buy") {
       if (order.ioc === true && this.bids.totalVolume < order.quantity) {

@@ -124,6 +124,26 @@ export class Engine {
             });
           }
 
+        case "GET_DEPTH":
+          try {
+            const { depthAsk, depthBid } = this.orderBook.calculateDepth();
+            const redisManagerInstance = await redisManager.getInstance();
+            redisManagerInstance.sendToB1(order_id, {
+              type: "GET_DEPTH",
+              payload: {
+                depthAsk,
+                depthBid,
+              },
+            });
+          } catch (error) {
+            const redisManagerInstance = await redisManager.getInstance();
+            redisManagerInstance.sendToB1(order_id, {
+              type: "GET_DEPTH",
+              payload: {},
+            });
+          }
+
+          break;
         default:
           break;
       }
@@ -156,7 +176,7 @@ export class Engine {
       const { depthAsk, depthBid, executedOrder, fills, status } =
         this.orderBook.addOrder(newOrder);
 
-      console.log("Order book depths:", executedOrder);
+      console.log("Order book depths:", depthAsk, depthBid);
 
       if (executedOrder) {
         await this.processOrdersToDb(fills, executedOrder);
