@@ -94,7 +94,7 @@ export class RedisManagerToBackendDb {
           "message",
           JSON.stringify({ formattedMessage })
         );
-        // console.log("Published:", formattedMessage);
+       
       } catch (err) {
         console.error("Error in publishing message:", err);
         throw err; // Re-throw the error to the caller

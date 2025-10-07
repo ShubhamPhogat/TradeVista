@@ -9,7 +9,7 @@ const cors = require("cors");
 const marketMaker = require("./MarketMaker.js");
 initialiseWebSocket(WebSockerPort);
 // ConnectPostgres();
-marketMaker();
+// marketMaker();
 
 const app = express();
 const ExpressPort = 3000;

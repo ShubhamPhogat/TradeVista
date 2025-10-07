@@ -6,7 +6,7 @@ let refreshClient = null;
 let refreshInterval = null;
 
 /**
- * Initialize view refresh cron job using the existing connection pool
+ 
  * @param {Pool} pool - PostgreSQL connection pool
  */
 export const initRefreshViews = async (pool) => {

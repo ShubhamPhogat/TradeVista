@@ -15,6 +15,7 @@ async function registerUser(req, res) {
     return res.status(400).json({ message: "All fields are required" });
   }
   const userId = v4();
+  
 }
 
 module.exports = registerUser;
